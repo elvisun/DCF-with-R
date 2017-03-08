@@ -123,9 +123,79 @@ $(document).ready(function () {
 </div>
 
 
-<div id="hellow-world" class="section level1">
-<h1>hellow world</h1>
-<p>asdfasdf asdfa sdf</p>
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p>This report outlines how the DCF function written in R works and shows a brief demonstration.</p>
+</div>
+<div id="usage" class="section level1">
+<h1>Usage</h1>
+<p>Load the function as an external package, or copy and paste the function into your project, then call the function with the following parameters in the exact order:</p>
+<pre><code>currentRevenue, currentCapitalSpending, currentDepreciation, taxRateIncome, bookValueDebt, bookValueEquity, nolCarriedForward, publiclyTradedFlag, lastTradedPrice, numberSharesOutstanding, marketValueDebt, debtCapitalRatio, costEquity, betaStock, riskFreeRate, riskPremium, costDebt, growthRateStablePeriod, operatingExpenseStablePeriod, workingCapitalStablePeriod,betaStablePeriod, debtRatioStablePeriod, costDebtFlag, costDebtStablePeriod,capitalExpendituresStablePeriod, growthRateRevenueRng,operatingExpenseRng, growthRateCapitalSpendingRng, growthRateDepreciationRng, workingCapitalRng,excessReturnPeriods = 10, capPeriods = 5, output = 1</code></pre>
+<p>Note that the variables <code>excessReturnPeriods</code>, <code>capPeriods</code>, <code>output</code> are optional parameters and have default values as shown.</p>
+</div>
+<div id="workflow" class="section level1">
+<h1>Workflow</h1>
+<div id="preprocessing" class="section level3">
+<h3>Preprocessing</h3>
+<p>First, some of the parameters are passed as matrices. The function first verify its column dimension has a length of 1, if not, it would transpose the matrix. It then verifies the length of the matrix is the same with the <code>excessReturnPeriods</code> specified.</p>
+<pre class="r"><code>  if (nrow(growthRateRevenueRng) == 1){
+    growthRateRevenueRng &lt;- t(growthRateRevenueRng)
+  }
+  if (nrow(growthRateRevenueRng) != excessReturnPeriods){
+    stop(&quot;Different Dimension Than Excess Return Periods&quot;)
+  }</code></pre>
+<p>The function then calculates some neccessary values that are later used in the calculation.</p>
+</div>
+<div id="calculation-based-on-growth-rate" class="section level3">
+<h3>Calculation based on growth rate</h3>
+<p>The function uses a for loop that loops through the <code>excessReturnPeriods</code> and calculate the information needed every year:</p>
+<pre class="r"><code>  for(j in 1:excessReturnPeriods) {
+    ifelse(j &gt; 1, temp[2,j] &lt;- temp[2,j-1], temp[2,j] &lt;- currentRevenue * (1 + growthRateRevenueVector[j,1]))
+    # ...
+    if(j &gt; 1) {
+      temp[5,j] &lt;- ifelse(temp[4,j] &gt; 0, ifelse(temp[12,j-1] &gt; temp[4,j], 0, (temp[4,j] - temp[12,j-1])) * taxRateIncome, 0)
+      # ...
+    }
+    else {
+      temp[5,j] &lt;- ifelse(temp[4,j] &gt; 0, ifelse(nolCarriedForward &gt; temp[4,j], 0, (temp[4,j] - nolCarriedForward) * taxRateIncome), 0)
+      # ...
+    }
+    ifelse(is.na(temp[28,1]), temp[28,1] &lt;- temp[11,j], temp[28,1] &lt;- temp[28,1] + temp[11,j])
+  }</code></pre>
+<p>An if statement <code>if(j&gt;1)</code> is used to determine the first year’s values, then the subsequent values are determined by the growth rate input.</p>
+</div>
+<div id="terminal-value-calculation" class="section level3">
+<h3>Terminal value calculation</h3>
+<p>Finally, the terminal values for all items are calculated after the for loop using different logics.</p>
+<pre class="r"><code>  temp[2,excessReturnPeriods+1] &lt;- temp[2,excessReturnPeriods] * (1+ growthRateStablePeriod)
+  temp[3,excessReturnPeriods+1] &lt;- temp[2,excessReturnPeriods+1] * operatingExpenseStablePeriod
+  #...</code></pre>
+<p>Then the result is saved in the <code>intrinsicValueShare</code></p>
+</div>
+<div id="output" class="section level3">
+<h3>Output</h3>
+<p>The output can be given in multiple formats, the intrinsic value per share as well as a more detailed output. This can be chosen by setting the value of the <code>output</code> parameter.</p>
+</div>
+</div>
+<div id="example" class="section level1">
+<h1>Example</h1>
+<p>An example with the following parameter is included:</p>
+<pre class="r"><code>dcfFunc(108249, 7696, 1814, 0.242157579,
+        0.1, 76615, 200000, TRUE, #8
+        500, 929.3, 0.1, 0,       #12
+        0.07, 1, 0.02, 0.05,      #16
+        0.025, 0.03, 0.8165, 0.01,#20
+        1, 0.15, TRUE, 0.08,      #24
+        1.1,
+        matrix(c(rep(0.06,7),rep(0.03,13)),ncol=1),
+        matrix(c(rep(0.82,20)),ncol=1),
+        matrix(c(0.02,rep(0.06,4),rep(0.03,15)),ncol=1),
+        matrix(c(-0.07,rep(0.06,5),rep(0.03,14)),ncol=1),
+        matrix(c(rep(0.05,20)),ncol=1),
+        20,5,0
+)</code></pre>
+<pre><code>#Result
+[1] 467.4989</code></pre>
 </div>
 <div id="improvements" class="section level1">
 <h1>Improvements</h1>
