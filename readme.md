@@ -1,27 +1,25 @@
----
-title: "DCF in R"
-author: "Elvis Sun, 250696535"
-date: "March 8th, 2017"
-output: 
+Introduction
+============
 
-  md_document:
-    variant: markdown_github
----
-
-# Introduction
 This report outlines how the DCF function written in R works and shows a brief demonstration.
 
-# Usage
+Usage
+=====
+
 Load the function as an external package, or copy and paste the function into your project, then call the function with the following parameters in the exact order:
-```
-currentRevenue, currentCapitalSpending, currentDepreciation, taxRateIncome, bookValueDebt, bookValueEquity, nolCarriedForward, publiclyTradedFlag, lastTradedPrice, numberSharesOutstanding, marketValueDebt, debtCapitalRatio, costEquity, betaStock, riskFreeRate, riskPremium, costDebt, growthRateStablePeriod, operatingExpenseStablePeriod, workingCapitalStablePeriod,betaStablePeriod, debtRatioStablePeriod, costDebtFlag, costDebtStablePeriod,capitalExpendituresStablePeriod, growthRateRevenueRng,operatingExpenseRng, growthRateCapitalSpendingRng, growthRateDepreciationRng, workingCapitalRng,excessReturnPeriods = 10, capPeriods = 5, output = 1
-```
+
+    currentRevenue, currentCapitalSpending, currentDepreciation, taxRateIncome, bookValueDebt, bookValueEquity, nolCarriedForward, publiclyTradedFlag, lastTradedPrice, numberSharesOutstanding, marketValueDebt, debtCapitalRatio, costEquity, betaStock, riskFreeRate, riskPremium, costDebt, growthRateStablePeriod, operatingExpenseStablePeriod, workingCapitalStablePeriod,betaStablePeriod, debtRatioStablePeriod, costDebtFlag, costDebtStablePeriod,capitalExpendituresStablePeriod, growthRateRevenueRng,operatingExpenseRng, growthRateCapitalSpendingRng, growthRateDepreciationRng, workingCapitalRng,excessReturnPeriods = 10, capPeriods = 5, output = 1
+
 Note that the variables `excessReturnPeriods`, `capPeriods`, `output` are optional parameters and have default values as shown.
 
-# Workflow
+Workflow
+========
+
 ### Preprocessing
+
 First, some of the parameters are passed as matrices. The function first verify its column dimension has a length of 1, if not, it would transpose the matrix. It then verifies the length of the matrix is the same with the `excessReturnPeriods` specified.
-```{r, eval=FALSE}
+
+``` r
   if (nrow(growthRateRevenueRng) == 1){
     growthRateRevenueRng <- t(growthRateRevenueRng)
   }
@@ -33,8 +31,10 @@ First, some of the parameters are passed as matrices. The function first verify 
 The function then calculates some neccessary values that are later used in the calculation.
 
 ### Calculation based on growth rate
+
 The function uses a for loop that loops through the `excessReturnPeriods` and calculate the information needed every year:
-``` {r, eval=FALSE}
+
+``` r
   for(j in 1:excessReturnPeriods) {
     ifelse(j > 1, temp[2,j] <- temp[2,j-1], temp[2,j] <- currentRevenue * (1 + growthRateRevenueVector[j,1]))
     # ...
@@ -49,24 +49,31 @@ The function uses a for loop that loops through the `excessReturnPeriods` and ca
     ifelse(is.na(temp[28,1]), temp[28,1] <- temp[11,j], temp[28,1] <- temp[28,1] + temp[11,j])
   }
 ```
+
 An if statement `if(j>1)` is used to determine the first year's values, then the subsequent values are determined by the growth rate input.
 
 ### Terminal value calculation
-Finally, the terminal values for all items are calculated after the for loop using different logics. 
-``` {r, eval=FALSE}
+
+Finally, the terminal values for all items are calculated after the for loop using different logics.
+
+``` r
   temp[2,excessReturnPeriods+1] <- temp[2,excessReturnPeriods] * (1+ growthRateStablePeriod)
   temp[3,excessReturnPeriods+1] <- temp[2,excessReturnPeriods+1] * operatingExpenseStablePeriod
   #...
 ```
+
 Then the result is saved in the `intrinsicValueShare`
 
 ### Output
+
 The output can be given in multiple formats, the intrinsic value per share as well as a more detailed output. This can be chosen by setting the value of the `output` parameter.
 
-# Example
+Example
+=======
+
 An example with the following parameter is included:
 
-```{r, eval=FALSE}
+``` r
 dcfFunc(108249, 7696, 1814, 0.242157579,
         0.1, 76615, 200000, TRUE, #8
         500, 929.3, 0.1, 0,       #12
@@ -83,12 +90,10 @@ dcfFunc(108249, 7696, 1814, 0.242157579,
 )
 ```
 
-```
-#Result
-[1] 467.4989
-```
+    #Result
+    [1] 467.4989
 
-# Improvements
-In the future, it might be worth it to add an interactive user interface for users to easily input data into a web form, and the calculation can be done easily from there. This can be implemented using the shiny package, and will be done for the project. 
+Improvements
+============
 
-
+In the future, it might be worth it to add an interactive user interface for users to easily input data into a web form, and the calculation can be done easily from there. This can be implemented using the shiny package, and will be done for the project.
